@@ -1,0 +1,62 @@
+{# PREVIOUS & NEXT MONTH #}
+{% set prevMonth = now|date_modify("last day of last month") %}
+{% set nextMonth = now|date_modify("first day of next month") %}
+
+{# PAGINATION #}
+{% set total = craft.venti.allEvents().startDate('and', '> ' ~ prevMonth, '< ' ~ nextMonth).total() %}
+{% set prev = 1 %}
+{% set next = 2 %}
+{% set limit = 10 %}
+{% set pge = craft.request.getParam('pg') ? craft.request.getParam('pg') : 0 %}
+{% set lastPage = "" %}
+{% set offset = (pge - 1) * limit %}
+
+{% if total % limit == 0 %}
+    {% set lastPage = (total // limit) %}
+{% else %}
+    {% set lastPage = (total // limit) + 1 %}
+{% endif %}
+
+{% if pge - 1 <= 0 %}
+    {% set prev = 0 %}
+    {% set next = 2 %}
+{% elseif pge == lastPage %}
+    {% set prev = pge - 1 %}
+    {% set next = lastPage %}
+{% else %}
+    {% set prev = pge - 1 %}
+    {% set next = pge + 1 %}
+{% endif %}
+
+{# EVENT LIST #}
+{% set events = craft.venti.allEvents({
+    startDate:['and', '>= ' ~ prevMonth, '<= ' ~ nextMonth],
+    limit: limit,
+    offset: offset
+}) %}
+
+{% for event in events %}
+    <div>
+        {# 
+            You can get a specific recurring event if you set a route that has the base url you
+            set for the section plus a variable to include the eid.
+        #}
+        <h3><a href="{{ event.url }}/{{ event.eid }}">{{ event.title }}</a></h3>
+        <p>{{ event.startDate|date('M d, Y g:ia') }}</p>
+        {# This is assuming your section has a 'description' input with your Venti input. #}
+        <p>{{ event.description }}</p>
+    </div>
+{% endfor %}
+
+<div>
+    {% if prev > 0 %}
+        <a href="?pg={{ prev }}">Previous</a>
+    {% else %}
+        <span class='disabled'>Previous</span>
+    {% endif %}
+    {% if next < lastPage %}
+        <a href="?pg={{ next }}">Next</a>
+    {% else %}
+        <span class='disabled'>Next</span>
+    {% endif %}
+</div>

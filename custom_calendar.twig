@@ -1,0 +1,90 @@
+{# CUSTOM CALENDAR OUTPUT #}
+<section class='calendar' style="width:90%;">
+    {# We are passing the Month and Years as url params #}
+    {% set currentMonth = craft.request.getParam('m') ? craft.request.getParam('m') : "now"|date('n') %}
+    {% set currentYear = craft.request.getParam('y') ? craft.request.getParam('y') : "now"|date('Y') %}
+    {# Setting a string as current year-month-day #}
+    {% set cur = currentYear  ~ "-" ~ currentMonth ~ "-1" %}
+    {# Obtain previous and next months dates #}
+    {% set prevMonth = cur|date_modify("last day of last month")|date('U') %}
+    {% set nextMonth = cur|date_modify("first day of next month")|date('U') %}
+    
+    {# Create a disabled class if you don't want user to go to previous months #}
+    {% set disabled = prevMonth|date('Y-m-d') < now|date('Y-m-d') ? "disabled" : "" %}
+    
+    {# Previous Month button. Current Month & Year. Next Month Button #}
+    <div>
+        <a href="?m={{ prevMonth|date('n') }}&y={{ prevMonth|date('Y') }}" class="{{ disabled }}"></a>
+        <span>{{ cur|date('M Y') }}</span>
+        <a href="?m={{ nextMonth|date('n') }}&y={{ nextMonth|date('Y') }}" class="btn arrow next"></a>
+    </div>
+    <div class="calendar-block">
+        {# Get the events for the calendar #}
+        {% set events = craft.venti.allEvents().startDate('and', '>= ' ~ prevMonth, '<= ' ~ nextMonth).find() %}
+        {# Setting the parameters for the Twig Calendar helper #}
+        {% set prm = {
+            "events": events,
+            "month": currentMonth,
+            "year": currentYear
+        } %}
+        {# Start the Twig Calendar helper. Each day's events are assigned to the array "days" #}
+        {% calendar prm as days %}
+            <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        {# 
+                            Getting the calendar's days of the week. (abbr|short|narrow|wide)
+                            We output two formats to hide one for desktop and mobile.
+                         #}
+                        {% for item in calendar.head %}
+                            <th>
+                                <span class="tri">{{ item.abbr }}</span>
+                                <span class="single">{{ item.narrow }}</span>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set idx = 1 %}
+                    {% for item in days %}
+                        {% if idx == 1 %}
+                            <tr>
+                        {% endif %}
+                        {# If this day is not from a previous or next month output #}
+                        {% if item.date is not empty %}
+                            <td {% if item.today %}class="today"{% endif %}>
+                                <a class='title'>
+                                    {% if item.today %}<span>today</span>{% endif %}
+                                    <em>
+                                        {% if item.day == 1 %}{{ item.date|date("M") }}{% endif %} {{ item.day }}
+                                    </em>
+                                </a>
+                                <ul>
+                                    {# Outputting this days events. #}
+                                    {% for d in item.events %}
+                                        <li><a href="{{ d.url }}/{{ d.eid }}">{{ d.title }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        {# If today is from a previous or next month output its date info. #}
+                        {% else %}
+                            <td>
+                                <a class='title'><em>{{ item.day }}</em></a>
+                                {% if item.date is not empty %}
+                                    {{ item.date|date('D M d Y') }}
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                        {% set idx = idx + 1 %}
+                        {% if idx > 7 %}
+                            </tr>
+                            {% set idx = 1 %}
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        {# In CraftCMS 2.5 we don't need a closing tag for the Twig Calendar helper #}
+    </div>
+</section>

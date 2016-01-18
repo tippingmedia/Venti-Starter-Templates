@@ -1,0 +1,63 @@
+<article>
+    {# 
+        Custom Route: /event/*/*
+        We are piggy-backing off the event section's route:  /event/{slug}
+        If there is no 3rd segement we are assuming accessing the original event.
+        However in this case we use the 'nextEvent' method to get the next event available
+        if it is recurring otherwise it will return the original event.
+    #}
+    {% set segments = craft.request.segments %}
+    {% if segments|length == 3 %}
+      {% set eid = craft.request.lastSegment %}
+      {% set event = craft.Events.getEvent(eid) %}
+    {% else %}
+      {% set event = craft.Events.nextEvent(entry.id) %}
+    {% endif %}
+
+    <h2>{{ event.title }}</h2>
+    {# Event date time output #}
+    
+    <h4>
+        {# Is the event same date or multiday event? #}
+        {% if event.startDate|date('mdY') == event.endDate|date('mdY') %}
+            {# Is the event all day #}
+            {% if event.allDay == 1 %}
+                {# If the event is repeat also show the repeat schedule(summary) #}
+                {% if event.isrepeat == 1 %}
+                    {{ event.startDate|date('M d, Y') }} {{ event.summary }}
+                {% else %}
+                    {{ event.startDate|date('M d, Y') }}
+                {% endif %}
+            {% else %}
+                {# If the event is repeat also show the repeat schedule(summary) #}
+                {% if event.isrepeat %}
+                    {{ event.startDate|date('M d, Y g:ia') }} - {{ event.endDate|date('g:ia') }}  {{ event.summary }}
+                {% else %}
+                    {{ event.startDate|date('M d, Y g:ia') }} - {{ event.endDate|date('g:ia') }}
+                {% endif %}
+            {% endif %}
+        {% else %}
+            {% if event.allDay == 1 %}
+                {{ event.startDate|date('M d, Y') }} - {{ event.endDate|date('M d, Y') }}
+            {% else %}
+                {{ event.startDate|date('M d, Y g:ia') }} - {{ event.endDate|date('M d, Y g:ia') }}
+            {% endif %}
+        {% endif %}
+    </h4>
+
+    {# If the events Section has a category input for the event. #}
+    <p>
+        {% if event.eventCategories|length %}
+            {% for item in event.eventCategories %}
+                <span>
+                    {{ item.title }}
+                </span>
+                {% if not loop.last %}, {% endif %}
+            {% endfor %}
+        {% endif %}
+    </p>
+    
+    {# If the events Section has a body input for the event #}
+    {{ event.body|default('I need some content!') }}
+
+</article>
